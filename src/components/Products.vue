@@ -20,7 +20,8 @@
                 Details</button>
         </div>
 
-        <div v-if="Object.keys(product).length > 0">
+        <div v-if="Object.keys(product).length > 0" class="relative border border-gray-300 rounded p-5 mt-5">
+            <button @click="product = {}" class="absolute top-0 right-0 mt-2 mr-2 text-red-800">X</button>
             <h2 class="text-xl font-bold mb-2">Product details</h2>
             <ul class="list-none p-0 border border-gray-300 rounded w-72">
                 <li class="px-5 py-2 border-b border-gray-300 flex justify-between"><strong>Type:</strong> {{
@@ -40,6 +41,7 @@
                     <th class="px-2 py-1 bg-gray-200 text-left">Name</th>
                     <th class="px-2 py-1 bg-gray-200 text-left">ID</th>
                     <th class="px-2 py-1 bg-gray-200 text-left">Price</th>
+                    <th class="px-2 py-2 bg-gray-200 text-left">Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -48,75 +50,44 @@
                     <td class="px-2 py-1">{{ product.name }}</td>
                     <td class="px-2 py-1">{{ product.id }}</td>
                     <td class="px-2 py-1">{{ product.price }}</td>
+                    <td class="px-2 py-1">
+                        <button @click="deleteProduct(product)"
+                            class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-700 transition duration-300">
+                            Delete
+                        </button>
+                    </td>
                 </tr>
                 <tr v-if="products.length === 0">
-                    <td colspan="4" class="text-center">No records</td>
+                    <td colspan="5" class="text-center">No records</td>
                 </tr>
             </tbody>
         </table>
         <Alert :visible="showAlert" :message="alertMessage" />
 
 
-        <div class="flex gap-2 ml-auto">
-            <input type="text" placeholder="Product ID" v-model="id" class="px-5 py-2 border border-gray-300 rounded">
-            <button @click="deleteProduct"
-                class="px-5 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300">Delete
-                product</button>
-        </div>
-
         <!-- modal component -->
-        <div v-if="showModal" class="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50">
-            <div class="bg-white p-5 rounded w-72 relative">
-                <h2>Add New Product</h2>
-                <form @submit.prevent="saveProduct">
-                    <div class="mb-4 flex flex-col">
-                        <label for="type" class="mb-1 font-bold">Type:</label>
-                        <input v-model="newProduct.type" type="text" id="type" required
-                            class="px-5 py-2 border border-gray-300 rounded">
-                    </div>
+        <Modal :showModal="showModal" :mode="type" :productName="productName" :productId="productId" />
 
-                    <div class="mb-4 flex flex-col">
-                        <label for="name" class="mb-1 font-bold">Name:</label>
-                        <input v-model="newProduct.name" type="text" id="name" required
-                            class="px-5 py-2 border border-gray-300 rounded">
-                    </div>
-
-                    <div class="mb-4 flex flex-col">
-                        <label for="price" class="mb-1 font-bold">Price:</label>
-                        <input v-model="newProduct.price" type="number" id="price" required
-                            class="px-5 py-2 border border-gray-300 rounded">
-                    </div>
-
-                    <div class="flex justify-end gap-2">
-                        <button type="submit"
-                            class="px-5 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300">Save</button>
-                        <button type="button" @click="showModal = false"
-                            class="px-5 py-2 bg-gray-500 text-white rounded hover:bg-gray-700 transition duration-300">Cancel</button>
-                    </div>
-                </form>
-            </div>
-
-        </div>
     </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
-import { getAllProducts, addNewProduct, deleteProductById, getProductById } from '../services/ApiServices';
+import { getAllProducts, getProductById } from '../services/ApiServices';
 import Alert from './Alert.vue';
+import Modal from './Modal.vue';
+
+
 const products = ref([]);
 const product = ref({});
 const id = ref('');
 const showModal = ref(false);
+const type = ref('');
 const showAlert = ref(false);
 const alertMessage = ref('');
+const productName = ref('');
+const productId = ref('');
 
-
-const newProduct = ref({
-    type: '',
-    name: '',
-    price: ''
-});
 
 async function fetchAllProducts() {
     try {
@@ -129,28 +100,11 @@ async function fetchAllProducts() {
 }
 
 function addProduct() {
+    console.log("test", showModal.value);
     showModal.value = true;
+    type.value = 'add';
 }
 
-async function saveProduct() {
-    const response = await addNewProduct(newProduct.value);
-    products.value.push(response);
-    console.log('Adding product:', newProduct.value);
-    // Add logic to add the product
-    showModal.value = false;
-    newProduct.value = {
-        type: '',
-        name: '',
-        price: ''
-    };
-
-    showAlert.value = true;
-    alertMessage.value = response.message;
-
-    setTimeout(() => {
-        showAlert.value = false;
-    }, 3000);
-}
 
 async function searchProduct() {
     try {
@@ -166,18 +120,12 @@ async function searchProduct() {
     }
 }
 
-async function deleteProduct() {
+function deleteProduct(product) {
     try {
-        const response = await deleteProductById(id.value);
-        console.log(response);
-
-        showAlert.value = true;
-        alertMessage.value = response.message;
-
-        setTimeout(() => {
-            showAlert.value = false;
-        }, 3000);
-        // Add logic to delete the product
+        showModal.value = true;
+        type.value = 'delete';
+        productName.value = product.name;
+        productId.value = product.id;
     } catch (error) {
         console.error('Error deleting product:', error);
     }
